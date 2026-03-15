@@ -1,234 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>67 Finder</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>
-  :root {
-    --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e;
-    --border: rgba(255,255,255,0.08); --accent: #ff6b35; --accent2: #ffd23f;
-    --text: #f0ede8; --muted: #888; --radius: 16px;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: "DM Sans", sans-serif; min-height: 100vh; overflow-x: hidden; }
-  body::before { content: ""; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; opacity: 0.4; }
-  .glow { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(ellipse, rgba(255,107,53,0.10) 0%, transparent 70%); pointer-events: none; animation: pulse-glow 4s ease-in-out infinite; z-index: 0; }
-  @keyframes pulse-glow { 0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)} }
-  .hero { position: relative; display: flex; flex-direction: column; align-items: center; padding: 60px 24px 60px; z-index: 1; }
-  .logo-area { display: flex; align-items: flex-end; justify-content: center; margin-bottom: 36px; height: 200px; }
-  .hand-unit { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
-  .digit { font-family:"Bebas Neue",sans-serif; font-size:100px; line-height:1; margin-bottom:-6px; position:relative; z-index:2; }
-  .digit.six   { color:var(--accent);  animation:digit-bob-left  2.4s ease-in-out infinite; }
-  .digit.seven { color:var(--accent2); animation:digit-bob-right 2.4s ease-in-out infinite; }
-  .hand-img { width:105px; height:auto; display:block; filter:drop-shadow(0 16px 32px rgba(0,0,0,0.9)); }
-  .hand-left  .hand-img { animation:bob-left  2.4s ease-in-out infinite; }
-  .hand-right .hand-img { animation:bob-right 2.4s ease-in-out infinite; }
-  @keyframes bob-left  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-26px)} }
-  @keyframes bob-right { 0%,100%{transform:translateY(-13px)} 50%{transform:translateY(13px)} }
-  @keyframes digit-bob-left  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-26px)} }
-  @keyframes digit-bob-right { 0%,100%{transform:translateY(-13px)} 50%{transform:translateY(13px)} }
-  .tagline { font-size:12px; font-weight:500; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); margin-bottom:32px; }
-  .card { width:100%; max-width:540px; background:var(--surface); border:1.5px solid var(--border); border-radius:24px; padding:28px; display:flex; flex-direction:column; gap:20px; box-shadow:0 24px 64px rgba(0,0,0,0.4); }
-  .field-label { font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
-  .city-wrapper { display:flex; align-items:center; background:var(--surface2); border:1.5px solid var(--border); border-radius:50px; padding:0 8px 0 20px; transition:border-color 0.25s, box-shadow 0.25s; }
-  .city-wrapper:focus-within { border-color:rgba(255,210,63,0.5); box-shadow:0 0 0 4px rgba(255,210,63,0.07); }
-  .city-icon { font-size:16px; margin-right:10px; opacity:0.7; }
-  .city-input { flex:1; background:transparent; border:none; outline:none; color:var(--text); font-family:"DM Sans",sans-serif; font-size:15px; padding:14px 0; min-width:0; }
-  .city-input::placeholder { color:var(--muted); }
-  .city-clear { width:28px; height:28px; border-radius:50%; background:var(--border); border:none; color:var(--muted); font-size:14px; cursor:pointer; display:none; align-items:center; justify-content:center; transition:background 0.15s; flex-shrink:0; }
-  .city-clear:hover { background:var(--surface); color:var(--text); }
-  .city-clear.visible { display:flex; }
-  .city-chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
-  .city-chip { font-size:12px; font-weight:500; padding:6px 13px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:border-color 0.15s, color 0.15s, background 0.15s; font-family:"DM Sans",sans-serif; }
-  .city-chip:hover { border-color:var(--accent2); color:var(--accent2); background:rgba(255,210,63,0.05); }
-  .divider { height:1px; background:var(--border); }
-  .type-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  .type-btn { display:flex; flex-direction:column; align-items:center; gap:4px; padding:13px 8px; background:var(--surface2); border:1.5px solid var(--border); border-radius:14px; cursor:pointer; transition:border-color 0.2s, background 0.2s; font-family:"DM Sans",sans-serif; }
-  .type-btn:hover { border-color:rgba(255,107,53,0.3); }
-  .type-btn.selected { border-color:var(--accent); background:rgba(255,107,53,0.08); }
-  .type-btn .t-icon { font-size:20px; }
-  .type-btn .t-label { font-size:11px; font-weight:600; color:var(--text); }
-  .type-btn .t-sub { font-size:10px; color:var(--muted); }
-  .go-btn { width:100%; background:var(--accent); border:none; border-radius:50px; color:white; font-family:"DM Sans",sans-serif; font-size:15px; font-weight:600; padding:15px; cursor:pointer; transition:background 0.2s, transform 0.15s, box-shadow 0.2s; letter-spacing:0.02em; }
-  .go-btn:hover  { background:#e85c28; box-shadow:0 8px 24px rgba(255,107,53,0.3); transform:translateY(-1px); }
-  .go-btn:active { transform:translateY(0) scale(0.98); }
-  .map-container { width:100%; max-width:540px; margin-top:20px; border-radius:24px; overflow:hidden; border:1.5px solid var(--border); background:var(--surface); display:none; box-shadow:0 24px 64px rgba(0,0,0,0.5); animation:fadeSlideUp 0.35s ease both; }
-  .map-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
-  .map-title { font-size:14px; font-weight:600; }
-  .map-sub { font-size:11px; color:var(--muted); margin-top:2px; }
-  .map-open-btn { font-size:11px; font-weight:600; color:var(--accent); text-decoration:none; padding:6px 14px; border:1px solid rgba(255,107,53,0.3); border-radius:20px; white-space:nowrap; transition:background 0.15s; flex-shrink:0; }
-  .map-open-btn:hover { background:rgba(255,107,53,0.1); }
-  .map-iframe { width:100%; height:420px; border:none; display:block; }
-  .map-loading { height:420px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--muted); font-size:13px; }
-  .spinner { width:28px; height:28px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
-  @keyframes spin { to{transform:rotate(360deg)} }
-  @keyframes fadeSlideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-  .reset-link { text-align:center; font-size:12px; color:var(--muted); cursor:pointer; margin-top:8px; transition:color 0.15s; }
-  .reset-link:hover { color:var(--text); }
-  .footer { margin-top:40px; font-size:11px; color:rgba(255,255,255,0.18); letter-spacing:0.06em; text-align:center; }
-  @media(max-width:480px) { .digit{font-size:76px} .hand-img{width:82px} .logo-area{height:160px} .type-grid{grid-template-columns:repeat(2,1fr)} }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>67 Finder</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div class="glow"></div>
-<div class="hero">
+
+<!-- ══ GLASS NAV ══════════════════════════════════════════════ -->
+<nav class="nav">
+  <span class="nav-logo">67</span>
+  <button class="nav-link active" data-page="home" onclick="showPage('home')">Search</button>
+  <button class="nav-link"        data-page="about" onclick="showPage('about')">About</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════
+     HOME PAGE
+══════════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <canvas id="lava-canvas"></canvas>
+  <div class="hero">
+
     <div class="logo-area">
-
-        <div class="hand-unit hand-left">
-          <div class="digit six">6</div>
-          <img class="hand-img" src="Images/Left_Hand_Palm.png">
-        </div>
-      
-        <div class="hand-unit hand-right">
-          <div class="digit seven">7</div>
-          <img class="hand-img" src="Images/Right_Hand_Palm.png">
-        </div>
-      
+      <div class="hand-unit hand-left">
+        <div class="digit six">6</div>
+        <img class="hand-img" src="Images/Left_Hand_Palm.png" alt="left hand" />
       </div>
-
-  <p class="tagline">Find every 67 address near you</p>
-
-  <div class="card">
-    <div>
-      <div class="field-label">What city are you in?</div>
-      <div class="city-wrapper" id="cityWrapper">
-        <span class="city-icon">&#127963;</span>
-        <input class="city-input" id="cityInput" type="text" placeholder="e.g. Providence, New York, Miami&#8230;" autocomplete="off"/>
-        <button class="city-clear" id="cityClear" onclick="clearCity()">&#x2715;</button>
-      </div>
-      <div class="city-chips">
-        <button class="city-chip" onclick="setCity('Providence, RI')">Providence</button>
-        <button class="city-chip" onclick="setCity('New York City, NY')">New York</button>
-        <button class="city-chip" onclick="setCity('Chicago, IL')">Chicago</button>
-        <button class="city-chip" onclick="setCity('Los Angeles, CA')">Los Angeles</button>
-        <button class="city-chip" onclick="setCity('Miami, FL')">Miami</button>
-        <button class="city-chip" onclick="setCity('Houston, TX')">Houston</button>
-        <button class="city-chip" onclick="setCity('Seattle, WA')">Seattle</button>
-        <button class="city-chip" onclick="setCity('Boston, MA')">Boston</button>
-        <button class="city-chip" onclick="setCity('Phoenix, AZ')">Phoenix</button>
+      <div class="hand-unit hand-right">
+        <div class="digit seven">7</div>
+        <img class="hand-img" src="Images/Right_Hand_Palm.png" alt="right hand" />
       </div>
     </div>
-    <div class="divider"></div>
-    <!--<div>
-      <div class="field-label">What kind of 67?</div>
-    </div>-->
-    <button class="go-btn" onclick="doSearch()">Find 67s &#8594;</button>
-  </div>
 
-  <div class="map-container" id="mapContainer">
-    <div class="map-header">
+    <p class="tagline">Find every 67 address near you</p>
+
+    <div class="card">
       <div>
-        <div class="map-title" id="mapTitle"></div>
-        <div class="map-sub" id="mapSub"></div>
+        <div class="field-label">What city are you in?</div>
+        <div class="city-wrapper" id="cityWrapper">
+          <span class="city-icon">🏙</span>
+          <input class="city-input" id="cityInput" type="text"
+                 placeholder="e.g. Providence, New York, Miami…" autocomplete="off" />
+          <button class="city-clear" id="cityClear" onclick="clearCity()">✕</button>
+        </div>
+        <div class="city-chips">
+          <button class="city-chip" onclick="setCity('Providence, RI')">Providence</button>
+          <button class="city-chip" onclick="setCity('New York City, NY')">New York</button>
+          <button class="city-chip" onclick="setCity('Chicago, IL')">Chicago</button>
+          <button class="city-chip" onclick="setCity('Los Angeles, CA')">Los Angeles</button>
+          <button class="city-chip" onclick="setCity('Miami, FL')">Miami</button>
+          <button class="city-chip" onclick="setCity('Houston, TX')">Houston</button>
+          <button class="city-chip" onclick="setCity('Seattle, WA')">Seattle</button>
+          <button class="city-chip" onclick="setCity('Boston, MA')">Boston</button>
+          <button class="city-chip" onclick="setCity('Phoenix, AZ')">Phoenix</button>
+          <button class="city-chip" onclick="setCity('Florence, Italy')">Florence</button>
+        </div>
       </div>
-      <a id="mapOpenBtn" class="map-open-btn" href="#" target="_blank" rel="noopener">Open in Maps &#8599;</a>
+      <div class="divider"></div>
+      <button class="go-btn" onclick="doSearch()">Find 67s →</button>
     </div>
-    <div id="mapContent"><div class="map-loading"><div class="spinner"></div></div></div>
-  </div>
 
-  <div class="reset-link" id="resetLink" style="display:none" onclick="reset()">&#8592; Search a different city</div>
-  <div class="footer">Powered by Google Maps</div>
+    <div class="map-container" id="mapContainer">
+      <div class="map-header">
+        <div>
+          <div class="map-title" id="mapTitle"></div>
+          <div class="map-sub"   id="mapSub"></div>
+        </div>
+        <a id="mapOpenBtn" class="map-open-btn" href="#" target="_blank" rel="noopener">Open in Maps ↗</a>
+      </div>
+      <div id="mapContent">
+        <div class="map-loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <div class="reset-link" id="resetLink" style="display:none" onclick="reset()">← Search a different city</div>
+    <div class="footer">Powered by Google Maps</div>
+  </div>
 </div>
 
-<script>
+<!-- ══════════════════════════════════════════════════════════
+     ABOUT PAGE
+══════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-about">
 
-    const GOOGLE_MAPS_API_KEY = "AIzaSyACRbO1wBGid-IdpPk_HsN6vbwm-2jwHBs";
-    
-    const cityInput = document.querySelector(".city-input");
-    const cityClear = document.querySelector(".city-clear");
-    const mapContainer = document.getElementById("mapContainer");
-    const mapContent = document.getElementById("mapContent");
-    
-    function escHtml(str){
-      return str.replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
-      }[m]));
-    }
-    
-    function doSearch(){
+  <!-- Animated gradient background -->
+  <div class="about-gradient-bg" id="aboutGradientBg"></div>
 
-const city = cityInput.value.trim();
+  <!-- ── Section 1: Giant "67" with glass effect ── -->
+  <section class="about-hero">
+    <div class="about-67-wrap">
+      <div class="about-67" id="about67">67</div>
+      <div class="about-67-glass-overlay"></div>
+    </div>
 
-if(!city){
-  cityInput.focus();
-  return;
-}
+    <div class="about-scroll-hint">
+      <span>Scroll</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
 
-const query = '"67" OR "67 st" OR "67th st" OR "67 street" OR "67 ave" OR "67 avenue" OR "67 rd" OR "67 road" OR "67 dr" OR "67 drive", ' + city;
+  <!-- ── Section 2: Floating autoplay videos ── -->
+  <section class="about-videos-section">
+    <span class="videos-label">In the wild</span>
+    <div class="videos-grid">
 
-const embedUrl =
-  "https://www.google.com/maps/embed/v1/search?key=" +
-  encodeURIComponent(GOOGLE_MAPS_API_KEY) +
-  "&q=" + encodeURIComponent(query) +
-  "&zoom=13";
+      <!-- Slot 1 -->
+      <div class="video-card">
+        <div class="video-placeholder">
+          <!-- Replace src with your actual video files e.g. src="Videos/clip1.mp4" -->
+          <video autoplay muted loop playsinline
+                 style="width:100%;display:block;aspect-ratio:9/16;object-fit:cover;">
+            <source src="Videos/clip1.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
 
-const mapsUrl =
-  "https://www.google.com/maps/search/" +
-  encodeURIComponent(query);
+      <!-- Slot 2 (tall center card) -->
+      <div class="video-card">
+        <div class="video-placeholder">
+          <video autoplay muted loop playsinline
+                 style="width:100%;display:block;aspect-ratio:9/16;object-fit:cover;">
+            <source src="Videos/clip2.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
 
-      mapContainer.style.display = "block";
-    
-      mapContent.innerHTML =
-        '<div class="map-loading">' +
-        '<div class="spinner"></div>' +
-        'Finding 67s in ' + escHtml(city) +
-        "</div>";
-    
-      document.getElementById("mapTitle").textContent =
-        "All 67s in " + city;
-    
-      document.getElementById("mapSub").textContent =
-        "Showing streets, avenues, drives, etc.";
-    
-      document.getElementById("mapOpenBtn").href = mapsUrl;
-    
-      const iframe = document.createElement("iframe");
-      iframe.className = "map-iframe";
-      iframe.src = embedUrl;
-      iframe.loading = "lazy";
-      iframe.allowFullscreen = true;
-    
-      setTimeout(() => {
-        mapContent.innerHTML = "";
-        mapContent.appendChild(iframe);
-      }, 500);
-    
-      mapContainer.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest"
-      });
-    }
-    
-    function clearCity(){
-      cityInput.value = "";
-      cityClear.classList.remove("visible");
-      cityInput.focus();
-    }
+      <!-- Slot 3 -->
+      <div class="video-card">
+        <div class="video-placeholder">
+          <video autoplay muted loop playsinline
+                 style="width:100%;display:block;aspect-ratio:9/16;object-fit:cover;">
+            <source src="Videos/clip3.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
 
-    function setCity(city){
-  cityInput.value = city;
-  cityClear.classList.add("visible");
-  cityInput.focus();
-}
-    
-    cityInput.addEventListener("input", () => {
-      cityClear.classList.toggle(
-        "visible",
-        cityInput.value.length > 0
-      );
-    });
-    
-    cityInput.addEventListener("keydown", e => {
-      if(e.key === "Enter"){
-        doSearch();
-      }
-    });
-    
-    </script>
-    
+      <!-- Slot 4 -->
+      <div class="video-card">
+        <div class="video-placeholder">
+          <video autoplay muted loop playsinline
+                 style="width:100%;display:block;aspect-ratio:9/16;object-fit:cover;">
+            <source src="Videos/clip4.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
+
+      <!-- Slot 5 -->
+      <div class="video-card">
+        <div class="video-placeholder">
+          <video autoplay muted loop playsinline
+                 style="width:100%;display:block;aspect-ratio:9/16;object-fit:cover;">
+            <source src="Videos/clip5.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Section 3: Editorial text ── -->
+  <section class="about-text-section">
+
+    <div class="editorial-eyebrow">A design experiment</div>
+
+    <h1 class="editorial-headline">
+      The number<br/>
+      that became<br/>
+      <em>a gesture.</em>
+    </h1>
+
+    <p class="editorial-pull-quote">
+      You don't need a punchline. You don't need context.
+      You just hold up your fingers and everyone laughs.
+    </p>
+
+    <div class="editorial-body">
+
+      <p class="editorial-p">
+        <strong>67 is a meme that lives in the body.</strong> It bypasses language entirely — 
+        you flash six fingers on one hand, seven on the other, and something electric passes 
+        through a room. No translation required. No cultural footnote. Just collective recognition 
+        of something absurd that we, as a society, decided was hilarious.
+      </p>
+
+      <p class="editorial-p">
+        As a designer, I kept coming back to that moment of shared understanding. 
+        <strong>How does a pair of mundane, unremarkable digits acquire meaning?</strong> Not 
+        through utility, not through beauty — but through pure social agreement. 
+        We assigned the joke. We spread it. We kept it alive with nothing more than our hands.
+      </p>
+
+      <p class="editorial-p">
+        67 Finder started as a question: what happens when you take that absurd energy and 
+        point it at something completely literal? Streets. Avenues. Addresses. 
+        <strong>The number 67 is everywhere</strong> — embossed on doorframes, painted on curbs, 
+        printed on maps — blissfully unaware that it has become a punchline. 
+        This site is about that gap. The space between the mundane and the meme.
+        Between the address and the joke.
+      </p>
+
+    </div>
+
+    <div class="editorial-stamp">
+      <div class="stamp-number">67</div>
+      <div class="stamp-text">
+        Made with curiosity<br/>
+        by a designer who<br/>
+        thinks too much about numbers
+      </div>
+    </div>
+
+  </section>
+
+</div><!-- /page-about -->
+
+<script src="script.js"></script>
 </body>
 </html>
